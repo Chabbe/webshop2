@@ -37,11 +37,11 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/liroliro/dw-webbshopFED19.git"
+		"url": "git+https://github.com/lirliro/dw-webbshopFED19.git"
 	},
 	"bugs": {
-		"url": "https://github.com/liroliro/dw-webbshopFED19/issues"
+		"url": "https://github.com/lirliro/dw-webbshopFED19/issues"
 	},
-	"homepage": "https://github.com/liroliro/dw-webbshopFED19#readme",
+	"homepage": "https://github.com/lirliro/dw-webbshopFED19#readme",
 	"description": "Webbshop for school project"
 }
