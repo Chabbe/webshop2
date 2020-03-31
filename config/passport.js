@@ -2,7 +2,7 @@ const LocalStrategy = require("passport-local").Strategy;
 const bcrypt = require("bcryptjs");
 
 // Load Admin model
-const Admin = require("../model/Admin");
+const Admin = require("../model/admin");
 
 module.exports = function (passport) {
     passport.use(
