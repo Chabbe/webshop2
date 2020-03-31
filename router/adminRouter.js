@@ -10,7 +10,7 @@ const {
 } = require("../config/auth");
 
 // Admin model 
-const Admin = require("../model/Admin");
+const Admin = require("../model/admin");
 const {
     forwardAuthenticated
 } = require('../config/auth');
