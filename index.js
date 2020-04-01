@@ -6,7 +6,7 @@ const config = require('./config/config');
 const app = express();
 const cookieParser = require('cookie-parser');
 const path = require('path');
-
+//test
 const expressLayouts = require("express-ejs-layouts"); //admin
 const flash = require("connect-flash"); //admin
 const session = require("express-session"); //admin
