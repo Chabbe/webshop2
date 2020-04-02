@@ -14,16 +14,16 @@ const userSchema = new Schema({
 	expirationToken: Date,
 	wishlist: [
 		{
-			productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' }
+			productId: { type: mongoose.Schema.Types.ObjectId, ref: 'ProductModel' }
 		}
 	],
 	cart: [
 		{
-			productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
-			quantity: {
-				type: Number,
-				require: true
-			}
+			productId: { type: mongoose.Schema.Types.ObjectId, ref: 'ProductModel' },
+			// quantity: {
+			// 	type: Number,
+			// 	require: true
+			// }
 		}
 	]
 });

@@ -8,8 +8,10 @@ const config = require('../config/config');
 const nodemailer = require('nodemailer');
 const sendGridTransport = require('nodemailer-sendgrid-transport');
 const crypto = require('crypto');
-const Product = require('../model/product');
+const ProductModel = require('../model/product');
 const flash = require('connect-flash');
+//process.env.STRIPE_KEY
+const stripe = require('stripe')('sk_test_YySTAvbkpChTtul9145MyCdr00CY3C8Tbp');
 
 const transport = nodemailer.createTransport(
 	sendGridTransport({
@@ -24,15 +26,22 @@ router.get('/register', async (req, res) => {
 });
 
 router.post('/register', async (req, res) => {
-	const { email, password } = req.body;
+	const {
+		email,
+		password
+	} = req.body;
 	let errors = [];
 
 	if (!email || !password) {
-		errors.push({ msg: 'Please enter all fields' });
+		errors.push({
+			msg: 'Please enter all fields'
+		});
 	}
 
 	if (password.length < 6) {
-		errors.push({ msg: 'Password must be at least 6 characters' });
+		errors.push({
+			msg: 'Password must be at least 6 characters'
+		});
 	}
 
 	if (errors.length > 0) {
@@ -42,9 +51,13 @@ router.post('/register', async (req, res) => {
 			password
 		});
 	} else {
-		User.findOne({ email: email }).then(user => {
+		User.findOne({
+			email: email
+		}).then(user => {
 			if (user) {
-				errors.push({ msg: 'Email already exists' });
+				errors.push({
+					msg: 'Email already exists'
+				});
 				res.render('register', {
 					errors,
 					email,
@@ -83,7 +96,9 @@ router.get('/login', (req, res) => {
 
 router.post('/login', async (req, res) => {
 	//Hämta info från databas
-	const user = await User.findOne({ email: req.body.loginEmail });
+	const user = await User.findOne({
+		email: req.body.loginEmail
+	});
 
 	if (!user) {
 		return res.redirect('/register');
@@ -93,15 +108,22 @@ router.post('/login', async (req, res) => {
 	const validUser = await bcrypt.compare(req.body.loginPassword, user.password);
 	if (!validUser) return res.redirect('/register');
 
-	jwt.sign({ user }, 'secretKey', (err, token) => {
+	jwt.sign({
+		user
+	}, 'secretKey', (err, token) => {
 		if (err) res.redirect('/login');
 
 		if (token) {
 			const cookie = req.cookies.jsonwebtoken;
 			if (!cookie) {
-				res.cookie('jsonwebtoken', token, { maxAge: 3600000, httpOnly: true });
+				res.cookie('jsonwebtoken', token, {
+					maxAge: 3600000,
+					httpOnly: true
+				});
 			}
-			res.render('userprofile', { user });
+			res.render('userprofile', {
+				user
+			});
 		}
 		res.redirect('/login');
 	});
@@ -116,7 +138,9 @@ router.get('/reset', (req, res) => {
 });
 router.post('/reset', async (req, res) => {
 	//req.body.resetMail
-	const user = await User.findOne({ email: req.body.resetMail });
+	const user = await User.findOne({
+		email: req.body.resetMail
+	});
 	if (!user) return res.redirect('/register');
 
 	crypto.randomBytes(32, async (err, token) => {
@@ -143,16 +167,22 @@ router.post('/reset', async (req, res) => {
 router.get('/reset/:token', async (req, res) => {
 	const user = await User.findOne({
 		resetToken: req.params.token,
-		expirationToken: { $gt: Date.now() }
+		expirationToken: {
+			$gt: Date.now()
+		}
 	});
 
 	if (!user) return res.redirect('/register');
 
-	res.render('resetForm', { user });
+	res.render('resetForm', {
+		user
+	});
 });
 
 router.post('/reset/:token', async (req, res) => {
-	const user = await User.findOne({ _id: req.body.userId });
+	const user = await User.findOne({
+		_id: req.body.userId
+	});
 
 	user.password = bcrypt.hash(req.body.password, 10);
 	user.resetToken = undefined;
@@ -163,8 +193,12 @@ router.post('/reset/:token', async (req, res) => {
 });
 
 router.get('/wishlist/:id', verifyToken, async (req, res) => {
-	const product = await Product.findOne({ _id: req.params.id });
-	const user = await User.findOne({ _id: req.body.user._id });
+	const product = await Model.findOne({
+		_id: req.params.id
+	});
+	const user = await User.findOne({
+		_id: req.body.user._id
+	});
 
 	await user.addToWishlist(product);
 
@@ -172,6 +206,11 @@ router.get('/wishlist/:id', verifyToken, async (req, res) => {
 });
 
 router.get('/checkout', verifyToken, async (req, res) => {
+	user = await User.findOne({
+		_id: req.body.user._id
+	}).populate("cart.productId")
+	console.log(user)
+
 	let products = [];
 
 	if (!req.body.user) {
@@ -179,20 +218,31 @@ router.get('/checkout', verifyToken, async (req, res) => {
 		return res.redirect('/product');
 	}
 
-	user = await User.findOne({
-		_id: req.body.user._id
-	});
-
 	for (let i = 0; i < user.cart.length; i++) {
-		let product = await Product.findOne({
+		let product = await ProductModel.findOne({
 			_id: user.cart[i].productId
 		});
 		products.push(product);
 	}
+	console.log(products)
+	return stripe.checkout.sessions.create({
+		payment_method_types: ["card"],
+		line_items: user.cart.map((product)=>{
+			return {
+				name: product.productId.city,
+				amount: product.productId.productprice*100, //öre *100 = 1 kronor
+				quantity: 1, 
+				currency:"sek"
+			}
+		}),
+		success_url: req.protocol +   "://" + req.get("Host") +  "/",
+		cancel_url: req.protocol +   "://" + req.get("Host") +  "/checkout"
+		// ":" + process.env.PORT + 
+   
+	}).then( (session)=>{
+		res.render("checkout.ejs", {user, sessionId:session.id, products})
+	})
 
-	res.render('checkout', {
-		products
-	});
 });
 
 router.get('/addToCart/:id', verifyToken, async (req, res) => {
@@ -209,7 +259,9 @@ router.get('/addToCart/:id', verifyToken, async (req, res) => {
 	user = await User.findOne({
 		_id: req.body.user._id
 	});
-	await user.addToCart({ _id: req.params.id });
+	await user.addToCart({
+		_id: req.params.id
+	});
 
 	req.flash('success_msg', 'Varan är tillagd i varukorgen');
 	res.redirect('/product');
@@ -224,5 +276,26 @@ router.get('/delete/:id', verifyToken, async (req, res) => {
 
 	res.redirect('/checkout');
 });
+// //det nya med stripe
+// router.get("/checkout", verifyToken,async (req, res)=>{
+// 	const user = await User.findOne({_id: req.body.user._id}).populate("cart.productId")
+// 	return stripe.checkout.sessions.create({
+// 		payment_method_types: ["card"],
+// 		line_items: user.cart.map((product)=>{
+// 			return {
+// 				name: product.productId.name,
+// 				amount: product.productId.price*100, //öre *100 = 1 kronor
+// 				quantity: 1, 
+// 				currency:"sek"
+// 			}
+// 		}),
+// 		success_url: req.protocol +   "://" + req.get("Host") +  "/",
+// 		cancel_url:"http://localhost:8000/products"
+// 		// ":" + process.env.PORT + 
+   
+// 	}).then( (session)=>{
+// 	res.render("checkout.ejs", {user, sessionId:session.id})
+// 	})
+// })
 
 module.exports = router;
